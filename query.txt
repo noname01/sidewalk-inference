@@ -1,0 +1,49 @@
+v1
+-------------------------
+[out:json];
+
+(
+  relation[highway][!area]
+  	["highway"!~"motorway"]
+  	["highway"!="footway"]
+  	["highway"!="steps"]
+  	["highway"!="service"]
+  	["highway"!="path"]
+  	["highway"!="pedestrian"]
+  ({{bbox}})->.cr;
+  
+  way[highway][!area]
+  	["highway"!~"motorway"]
+  	["highway"!="footway"]
+  	["highway"!="steps"]
+  	["highway"!="service"]
+  	["highway"!="path"]
+  	["highway"!="elevator"]
+  	["highway"!="pedestrian"]
+  ({{bbox}});
+    
+);
+
+out body;
+>;
+out skel qt;
+
+
+v2
+-------------------------
+[out:json];
+
+(
+  relation[highway][!area]
+  	["highway"~"primary|secondary|tertiary|residential|unclassified"]
+  ({{bbox}})->.cr;
+   
+  
+  way[highway][!area]
+  	["highway"~"primary|secondary|tertiary|residential|unclassified"]
+  ({{bbox}});      
+);
+
+out body;
+>;
+out skel qt;

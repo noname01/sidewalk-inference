@@ -1,0 +1,43 @@
+{
+  "version": 0.6,
+  "generator": "Overpass API",
+  "osm3s": {
+    "timestamp_osm_base": "2016-11-29T06:59:03Z",
+    "copyright": "The data included in this document is from www.openstreetmap.org. The data is made available under ODbL."
+  },
+  "elements": [
+
+{
+  "type": "way",
+  "id": 6325598,
+  "nodes": [
+    53009977,
+    2053744095,
+    53009979
+  ],
+  "tags": {
+    "highway": "primary",
+    "name": "Colman Dock"
+  }
+},
+{
+  "type": "node",
+  "id": 53009977,
+  "lat": 47.6017176,
+  "lon": -122.3365340
+},
+{
+  "type": "node",
+  "id": 2053744095,
+  "lat": 47.6017336,
+  "lon": -122.3367672
+},
+{
+  "type": "node",
+  "id": 53009979,
+  "lat": 47.6017397,
+  "lon": -122.3368696
+}
+
+  ]
+}
