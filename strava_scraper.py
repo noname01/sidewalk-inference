@@ -40,6 +40,7 @@ def read_crs_as_dict(aid):
         if re.match(r"^\s*<.*$", line): 
             res += line
     # print res
+    # TODO: change to beautiful soup
     return xmltodict.parse(res)
 
 def get_points_from_crs(crs):
@@ -67,7 +68,9 @@ if __name__ == "__main__":
 
         lats = [point[0] for point in points]
         lngs = [point[1] for point in points]
-        plt.scatter(lats, lngs)
+        colors = [np.random.rand()] * len(points)
+        plt.scatter(lngs, lats, linewidth='0', c=colors, alpha=0.2)
+        plt.axis('equal')
 
     pretty_json =  json.dumps(all_points, indent=2, separators=(',', ': '))
     output_file = open('all_points.json', 'w')
