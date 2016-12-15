@@ -6,6 +6,7 @@ import overpass
 import geojson
 import matplotlib.pyplot as plt
 from math import sqrt, exp, log
+from scipy.spatial import KDTree
 
 def read_file(file_path):
     content = ""
@@ -40,7 +41,7 @@ def sidewalk_dist(way, children):
         if log_likelihood > max_l:
             best_d = d
             max_l = log_likelihood
-    print best_d
+    # print best_d
     # plt.plot(d_range, ls)
     # plt.show()
 
@@ -69,40 +70,46 @@ def add_sidewalk(output, way, sidewalk_nodes):
 def get_children_data_points(ways, nodes, max_dis = 0.00012):
     children = [[] for i in range(len(ways))]
     children_points = [[] for i in range(len(ways))]
-    
-    t = 0
-    for point in data_points:
-        t += 1
-        if t % 1000 == 0:
-            print t
-        x = np.array([point[0], point[1]])
+    print "analyzing data points and segments"
 
-        for i in range(len(ways)):
-            way = ways[i]
-            num_nodes = len(way["nodes"])
-            
-            for j in range(1, num_nodes):
-                n1 = nodes[way["nodes"][j - 1]]
-                n2 = nodes[way["nodes"][j]]
+    for i in range(len(ways)):
+        sys.stdout.write('\r' + str(i) + "/" + str(len(ways)))
+        way = ways[i]
+        num_nodes = len(way["nodes"])
+        
+        for j in range(1, num_nodes):
+            n1 = nodes[way["nodes"][j - 1]]
+            n2 = nodes[way["nodes"][j]]
 
-                # point of perpendicular in between two points
-                # print (n1 - n2).dot(x - n2) * (n2 - n1).dot(x - n1)
-                if (n1 - n2).dot(x - n2) >= 0 and (n2 - n1).dot(x - n1) >= 0:
-                    direction = (n2 - n1) / np.linalg.norm(n2 - n1)
-                    # print abs(direction.dot(x - n1))
-                    if abs(direction.dot(x - n1)) < max_dis:
-                        # plt.plot([n1[0], n2[0]], [n1[1], n2[1]], 'o')
-                        # plt.plot([x[0]], [x[1]], 'ro')
-                        # plt.axis('equal')
-                        # plt.show()
+            mid = np.array([(n1 + n2) / 2.])
 
-                        children[i] += [abs(direction.dot(x - n1))]
-                        children_points[i] += [x]
-    
+            _, neighbor_indexes = data_kd_tree.query(mid, k=1000, distance_upper_bound=0.01)
+            neighbor_indexes = np.array([idx for idx in neighbor_indexes[0] \
+                if idx >= 0 and idx < data_kd_tree.data.shape[0]])
+
+            if neighbor_indexes.shape[0] > 0:
+                neighbors = data_kd_tree.data[neighbor_indexes]
+
+                for x in neighbors:
+                    # point of perpendicular in between two points
+                    # print (n1 - n2).dot(x - n2) * (n2 - n1).dot(x - n1)
+                    if (n1 - n2).dot(x - n2) >= 0 and (n2 - n1).dot(x - n1) >= 0:
+                        direction = (n2 - n1) / np.linalg.norm(n2 - n1)
+                        # print abs(direction.dot(x - n1))
+                        if abs(direction.dot(x - n1)) < max_dis:
+                            # plt.plot([n1[0], n2[0]], [n1[1], n2[1]], 'o')
+                            # plt.plot([x[0]], [x[1]], 'ro')
+                            # plt.axis('equal')
+                            # plt.show()
+
+                            children[i] += [abs(direction.dot(x - n1))]
+                            children_points[i] += [x]
+    print "\t done"
     for i in range(len(ways)):
         lngs = [point[1] for point in children_points[i]]
         lats = [point[0] for point in children_points[i]]
-        plt.plot(lngs, lats, 'o', linewidth='0')
+        plt.scatter(lngs, lats, linewidth='0', alpha=0.2, color='green')
+        plt.axis("equal")
     plt.show()
 
     return children
@@ -135,7 +142,12 @@ def generate_sidewalks(osm_json):
         plt.plot(children_data_points[i], [i] * len(children_data_points[i]), 'x')
     plt.show()
 
+    
+    print "predicting sidewalk locations"
+    d_hats = []
     for t in range(len(ways)):
+        sys.stdout.write('\r' + str(t) + "/" + str(len(ways)))
+
         way = ways[t]
         num_nodes = len(way["nodes"])
         if num_nodes > 1:
@@ -147,6 +159,7 @@ def generate_sidewalks(osm_json):
 
             # expected distance from centerline
             d = sidewalk_dist(way, children_data_points[t])
+            d_hats += [d]
             # print d
 
             # list of sidewalk waypoint pairs (left, right)
@@ -167,16 +180,21 @@ def generate_sidewalks(osm_json):
 
             add_sidewalk(sidewalk_json, way, sidewalk_nodes)
     
-    print sidewalk_nodes
+    plt.hist(d_hats, 50, normed=1, facecolor='green', alpha=0.75)
+    plt.show()
+    print "\t done"
+
+    # print sidewalk_nodes
     pretty_json = json.dumps(sidewalk_json, indent=2, separators=(',', ': '))
 
+    print "wrote to output.json in osm json format"
     output_file = open('output.json', 'w')
     output_file.write(pretty_json)
 
     return sidewalk_json
 
 def load_strava_points_from_file(strava_points_file):
-    return json.loads(read_file(strava_points_file))
+    return np.array(json.loads(read_file(strava_points_file)))
 
 def generate_sidewalks_from_file(osm_json_file):
     osm_content = read_file(osm_json_file)
@@ -186,6 +204,7 @@ def generate_sidewalks_from_file(osm_json_file):
 
 
 data_points = load_strava_points_from_file("all_points.json")
+data_kd_tree = KDTree(data_points)
 print "number of total data points: " + str(len(data_points))
 
 if __name__ == "__main__":
