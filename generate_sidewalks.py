@@ -25,18 +25,19 @@ def normal(x, mu, sigma):
     return exp(-(x - mu) ** 2 / (2 * sigma ** 2)) / sqrt(2 * (sigma ** 2) * np.pi)
 
 def sidewalk_dist(way, children):
-    sigma = 0.00002
+    sigma_d = 0.00002
+    sigma_x = 0.00002
     mean = 0.00006
     best_d = None
     max_l = float("-inf")
 
     ls = []
     # print len(children)
-    d_range = np.arange(mean - sigma * 3, mean + sigma * 3, 0.000001)
+    d_range = np.arange(mean - sigma_d * 3, mean + sigma_d * 3, 0.000001)
     for d in d_range:
-        log_likelihood = log(normal(d, mean, sigma))
+        log_likelihood = log(normal(d, mean, sigma_d))
         for x in children:
-            log_likelihood += log(normal(x, d, sigma))
+            log_likelihood += log(normal(x, d, sigma_x))
         ls += [log_likelihood]
         if log_likelihood > max_l:
             best_d = d
@@ -67,6 +68,7 @@ def add_sidewalk(output, way, sidewalk_nodes):
                 "tags": { "highway": "sidewalk" }
             }]
 
+# only data points within max_dis of the ways are considered
 def get_children_data_points(ways, nodes, max_dis = 0.00012):
     children = [[] for i in range(len(ways))]
     children_points = [[] for i in range(len(ways))]
@@ -80,16 +82,15 @@ def get_children_data_points(ways, nodes, max_dis = 0.00012):
         for j in range(1, num_nodes):
             n1 = nodes[way["nodes"][j - 1]]
             n2 = nodes[way["nodes"][j]]
-
             mid = np.array([(n1 + n2) / 2.])
 
+            # consider the top k points that are at most distance_upper_bound from the midpoint
             _, neighbor_indexes = data_kd_tree.query(mid, k=1000, distance_upper_bound=0.01)
             neighbor_indexes = np.array([idx for idx in neighbor_indexes[0] \
                 if idx >= 0 and idx < data_kd_tree.data.shape[0]])
 
             if neighbor_indexes.shape[0] > 0:
                 neighbors = data_kd_tree.data[neighbor_indexes]
-
                 for x in neighbors:
                     # point of perpendicular in between two points
                     # print (n1 - n2).dot(x - n2) * (n2 - n1).dot(x - n1)
@@ -97,19 +98,15 @@ def get_children_data_points(ways, nodes, max_dis = 0.00012):
                         direction = (n2 - n1) / np.linalg.norm(n2 - n1)
                         # print abs(direction.dot(x - n1))
                         if abs(direction.dot(x - n1)) < max_dis:
-                            # plt.plot([n1[0], n2[0]], [n1[1], n2[1]], 'o')
-                            # plt.plot([x[0]], [x[1]], 'ro')
-                            # plt.axis('equal')
-                            # plt.show()
-
                             children[i] += [abs(direction.dot(x - n1))]
                             children_points[i] += [x]
     print "\t done"
     for i in range(len(ways)):
         lngs = [point[1] for point in children_points[i]]
         lats = [point[0] for point in children_points[i]]
-        plt.scatter(lngs, lats, linewidth='0', alpha=0.2, color='green')
-        plt.axis("equal")
+        plt.plot(lngs, lats, 'o', alpha=0.3)
+        # plt.show()
+    plt.axis("equal")
     plt.show()
 
     return children
