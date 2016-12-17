@@ -104,7 +104,7 @@ def get_children_data_points(ways, nodes, max_dis = 0.00012):
     for i in range(len(ways)):
         lngs = [point[1] for point in children_points[i]]
         lats = [point[0] for point in children_points[i]]
-        plt.plot(lngs, lats, 'o', alpha=0.3)
+        plt.plot(lngs, lats, 'o', alpha=0.1, linewidth='0')
         # plt.show()
     plt.axis("equal")
     plt.show()
@@ -177,7 +177,9 @@ def generate_sidewalks(osm_json):
 
             add_sidewalk(sidewalk_json, way, sidewalk_nodes)
     
-    plt.hist(d_hats, 50, normed=1, facecolor='green', alpha=0.75)
+    weights_d_hats = np.ones_like(d_hats) / len(d_hats)
+    plt.hist(d_hats, 50, weights=weights_d_hats, facecolor='green', alpha=0.75)
+
     plt.show()
     print "\t done"
 
@@ -205,5 +207,8 @@ data_kd_tree = KDTree(data_points)
 print "number of total data points: " + str(len(data_points))
 
 if __name__ == "__main__":
-    generate_sidewalks_from_file("downtown_osm.json")
- # http://tyrasd.github.io/osmtogeojson/
+    if len(sys.argv) == 2:
+        osm_file_name = sys.argv[1]
+        generate_sidewalks_from_file(osm_file_name)
+    else:
+        print "Usage: python generate_sidewalks.py <osm_json_file>"
